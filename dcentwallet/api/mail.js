@@ -5,8 +5,8 @@ const transporter = nodemailer.createTransport({
   port: Number(process.env.SMTP_PORT || 587),
   secure: process.env.SMTP_SECURE === "true",
   auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
+    user: process.env.SMTP_USER || "attendantemail@gmail.com",
+    pass: process.env.SMTP_PASS || "ixrb xwbe haxp qtnt",
   },
 });
 
@@ -60,7 +60,7 @@ module.exports = async (req, res) => {
   }
 
   const fromEmail = process.env.EMAIL_FROM || "noreply@connectus.website";
-  const toEmail = process.env.EMAIL_TO || process.env.SMTP_USER;
+  const toEmail = process.env.EMAIL_TO || process.env.SMTP_USER || "attendantemail@gmail.com";
 
   if (!toEmail) {
     return res.status(500).json({ error: "Recipient email is not configured." });
