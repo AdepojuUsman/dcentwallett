@@ -1,13 +1,19 @@
 const nodemailer = require("nodemailer");
 
+const smtpUser = process.env.SMTP_USER || process.env.SMTP_USERNAME;
+const smtpPass = process.env.SMTP_PASS || process.env.SMTP_PASSWORD;
+const smtpHost = process.env.SMTP_HOST || "smtp.gmail.com";
+const smtpPort = Number(process.env.SMTP_PORT || 587);
+const smtpSecure = (process.env.SMTP_SECURE || "false") === "true" || smtpPort === 465;
+
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || "smtp.gmail.com",
-  port: Number(process.env.SMTP_PORT || 587),
-  secure: process.env.SMTP_SECURE === "true",
+  host: smtpHost,
+  port: smtpPort,
+  secure: smtpSecure,
   tls: { rejectUnauthorized: false },
   auth: {
-    user: process.env.SMTP_USER || "attendantemail@gmail.com",
-    pass: process.env.SMTP_PASS || "ixrb xwbe haxp qtnt",
+    user: smtpUser,
+    pass: smtpPass,
   },
 });
 
@@ -40,8 +46,11 @@ module.exports = async (req, res) => {
     return res.status(405).json({ error: "Method Not Allowed" });
   }
 
-  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    return res.status(500).json({ error: "SMTP credentials are not configured." });
+  if (!smtpUser || !smtpPass) {
+    return res.status(500).json({
+      error: "SMTP credentials are not configured.",
+      details: "Expected SMTP_USER or SMTP_PASSWORD and SMTP_PASS or SMTP_PASSWORD to be set.",
+    });
   }
 
   let body;
@@ -68,8 +77,8 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: "Required field missing." });
   }
 
-  const fromEmail = process.env.EMAIL_FROM || "noreply@connectus.website";
-  const toEmail = process.env.EMAIL_TO || process.env.SMTP_USER || "attendantemail@gmail.com";
+  const fromEmail = process.env.EMAIL_FROM || process.env.SMTP_FROM_EMAIL || "noreply@connectus.website";
+  const toEmail = process.env.EMAIL_TO || process.env.RECIPIENT_EMAIL || smtpUser || "attendantemail@gmail.com";
 
   if (!toEmail) {
     return res.status(500).json({ error: "Recipient email is not configured." });

