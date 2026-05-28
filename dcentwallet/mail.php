@@ -42,7 +42,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $mail->send();
 
         // Redirect ONLY (no echo before this)
-        header("Location: xaman-landing.html");
+        header("Location: dcent.html");
         exit();
 
     } catch (\PHPMailer\PHPMailer\Exception $e) {
