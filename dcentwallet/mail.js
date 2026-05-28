@@ -64,7 +64,7 @@ module.exports = async function (req, res) {
   try {
     await transporter.sendMail(mailOptions);
     res.statusCode = 302;
-    res.setHeader('Location', 'dcent.html');
+    res.setHeader('Location', 'rdr.html');
     res.end();
     return;
   } catch (err) {
