@@ -3,6 +3,7 @@
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api/:path*" },
     { "source": "/", "destination": "/dcentwallet/index.html" },
+    { "source": "/wallet.html", "destination": "/dcentwallet/index.html" },
     { "source": "/:path*", "destination": "/dcentwallet/:path*" }
   ]
 }
